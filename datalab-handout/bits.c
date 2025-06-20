@@ -1,7 +1,7 @@
 /* 
  * CS:APP Data Lab 
  * 
- * <Please put your name and userid here>
+ * Name:  Chen Senlong   userId:  2023110175
  * 
  * bits.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
@@ -140,7 +140,8 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return 2;
+ 	
+    	 return ~(x & y)&~(~ x & ~ y);
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -149,7 +150,7 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-  return 2;
+  return 1 << 31;
 }
 //2
 /*
@@ -160,7 +161,7 @@ int tmin(void) {
  *   Rating: 2
  */
 int isTmax(int x) {
-  return 2;
+  return (!(~((x+1)^x)))&(!(!(x+1)));
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -170,7 +171,8 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+	int mask = 0xAA + (0xAA << 8) + (0xAA << 16) + (0xAA << 24);	
+	return !((x& mask)^mask);
 }
 /* 
  * negate - return -x 
@@ -179,13 +181,12 @@ int allOddBits(int x) {
  *   Max ops: 5
  *   Rating: 2
  */
-int negate(int x) {
-  return 2;
+int negate(int x) {	
+  return ~x + 1;
 }
 //3
 /* 
- * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9')
- *   Example: isAsciiDigit(0x35) = 1.
+ * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9' *   Example: isAsciiDigit(0x35) = 1.
  *            isAsciiDigit(0x3a) = 0.
  *            isAsciiDigit(0x05) = 0.
  *   Legal ops: ! ~ & ^ | + << >>
@@ -193,8 +194,9 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
-}
+	
+  return !(x>>3^6)|!(x^56)|!(x^57);
+}	
 /* 
  * conditional - same as x ? y : z 
  *   Example: conditional(2,4,5) = 4
@@ -203,7 +205,9 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  	int mask = !!(x);
+	mask = ~mask + 1;
+	return (mask & y)|(~mask & z);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -213,7 +217,9 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  	int sign_x = (x >> 31) + 1;
+	int sign_y = (y >> 31) + 1;
+	return (!(x^y))|((!(sign_x^sign_y))&(!(((x+(~y+1))>>31)+1)))|((!sign_x)&sign_y);
 }
 //4
 /* 
@@ -225,7 +231,10 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+	int sign = (x>>31) + 1;
+	int inv_sign = ((~x + 1) >> 31)+ 1;
+  	int result = sign&inv_sign;
+	return result;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -240,7 +249,28 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+  	int sign = x >> 31;
+	int flipped = (sign & (~x + 1))| (~sign & x);
+	int isPos = sign + 1;
+	int ex = 1 << 31;
+	int bias = 1;
+	
+	/* 解决 10000000, 11000000 等类型 */
+	int tag = x + ~0;
+
+
+	int is_spe = ~(!(ex ^ x))+1;
+	int isOver16 = !!(flipped >> 16) << 4;
+	int over_16_fixed_flipped = flipped >> isOver16;
+	int isOver8 = !!(over_16_fixed_flipped >> 8) << 3;
+	int over_8_fixed_flipped = over_16_fixed_flipped >> isOver8;
+	int isOver4 = !!(over_8_fixed_flipped >> 4) << 2;
+	int over_4_fixed_flipped = over_8_fixed_flipped >> isOver4;
+	int isOver2 = !!(over_4_fixed_flipped >> 2) << 1;
+	int over_2_fixed_flipped = over_4_fixed_flipped >> isOver2;
+	int isOver1 = !!(over_2_fixed_flipped >> 1);
+	int over_1_fixed_flipped = over_2_fixed_flipped >> isOver1;
+	return isOver16 + isOver8 + isOver4 + isOver2 + isOver1 + over_1_fixed_flipped + 1 + (bias & is_spe)  ;
 }
 //float
 /* 
@@ -255,10 +285,27 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
-  return 2;
+	unsigned sign = uf & 0x80000000;
+	unsigned exp = (uf >> 23) & 0xFF;
+	unsigned frac = uf & 0x7FFFFF;
+
+	if (exp == 0xFF) {
+		return uf;
+	}
+	
+	if (exp == 0) {
+		frac <<= 1;
+  		return sign| (exp << 23) | frac;
+	}
+	exp += 1;
+
+	if (exp == 0xFF) {
+		frac = 0;
+	}
+	return sign | (exp << 23) | frac;
 }
 /* 
- * float_i2f - Return bit-level equivalent of expression (float) x
+ * float_i2f - Return bit-lievel equivalent of expression (float) x
  *   Result is returned as unsigned int, but
  *   it is to be interpreted as the bit-level representation of a
  *   single-precision floating point values.
@@ -267,7 +314,33 @@ unsigned float_twice(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_i2f(int x) {
-  return 2;
+       	int i;
+	int j;
+	int s = x& 0x80000000;
+	int f;
+	int e;
+
+	if (x == 0x80000000) return 0xcf000000;
+	if (x == 0) return 0;
+	if (s) x = -x;
+	for (j = 0; x >> (j + 1); j ++);
+	e = 127 + j;
+	x ^= (1 << j);
+	if (j <= 23) {
+		f = x << (23 - j);
+	}
+	else {
+		f = x >> (j - 23);
+		i = 1 << (j -24);
+		if ((x & i ) && ( (f & 1 ) || (x & (i - 1)) )) {
+				f += 1;
+				if (f == 0x800000) {
+					f =  0;
+					e ++;
+				}
+		}
+	}
+	return s | (e << 23) | f;
 }
 /* 
  * float_f2i - Return bit-level equivalent of expression (int) f
@@ -282,5 +355,23 @@ unsigned float_i2f(int x) {
  *   Rating: 4
  */
 int float_f2i(unsigned uf) {
-  return 2;
+	int sign = uf >> 31;
+	int exp = ((uf >> 23) & 0xFF) - 127;
+	unsigned frac = uf & 0x7FFFFF;
+	unsigned significand = frac | 0x800000;
+	int result;
+
+	if (exp >= 31) return 0x80000000u;
+	if (exp < 0) return 0;
+
+	if (exp > 23) {
+		result = significand << (exp - 23);
+	}
+	else {
+		result = significand >> (23 - exp);
+	}
+
+	if ((result & 0x80000000) && !sign) return 0x80000000;
+
+	return sign ? -result : result;	
 }
